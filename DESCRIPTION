@@ -1,0 +1,26 @@
+Package: AnalyteExplorer
+Title: Analyte Explorer
+Version: 0.0.0.9000
+Authors@R: c(person("Evan", "Henrich", role = "aut"),
+             person("Ju Yeong", "Kim", role = "aut"),
+             person("ImmuneSpace Package Maintainer",
+                    email = "immunespace@gmail.com",
+                    role = c("cre", "cph")))
+Description: Analyte Explorer.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports:
+    stats,
+    Rlabkey,
+    ImmuneSpaceR,
+    Biobase,
+    data.table,
+    UpdateAnno,
+    assertthat,
+    httr,
+    rvest,
+    stringr,
+    xml2
