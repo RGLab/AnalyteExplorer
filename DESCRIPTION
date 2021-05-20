@@ -12,6 +12,7 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
+biocViews: Preprocessing
 Imports:
     stats,
     Rlabkey,
@@ -24,3 +25,5 @@ Imports:
     rvest,
     stringr,
     xml2
+Remotes:
+    RGLab/UpdateAnno
