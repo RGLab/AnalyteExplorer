@@ -111,7 +111,10 @@ process_gene_expression <- function() {
     selectRows <- which(rownames(em) %in% btms[[x]])
     subEm <- em[selectRows, ]
     if (!is.null(dim(subEm))) {
-      return(colMeans(subEm))
+      gm_mean <- apply(subEm, 2, function(p) {
+        2 ^ mean(p, na.rm = TRUE)
+      })
+      return(gm_mean)
     } else {
       return(subEm)
     }
@@ -152,8 +155,7 @@ process_gene_expression <- function() {
     subEm <- em[selectRows, ] # some symbols may not be found!
     if (!is.null(dim(subEm))) {
       gm_mean <- apply(subEm, 2, function(p) {
-        # this should be 2^(sum(p) / length(p))
-        exp(sum(p) / length(p))
+        2 ^ mean(p, na.rm = TRUE)
       })
       return(gm_mean)
     } else {
@@ -432,8 +434,9 @@ createSummaryData <- function(eset, logData) {
         if (logData) {
           fc <- currEm - baseEm
         } else {
-          delta <- currEm - baseEm
-          fc <- delta / baseEm
+          # delta <- currEm / baseEm
+          # fc <- delta / baseEm
+          fc <- currEm / baseEm
         }
 
         mean_fc <- rowMeans(fc)

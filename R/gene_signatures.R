@@ -5,8 +5,10 @@
 process_gene_signatures <- function() {
   # read-in
   file <- system.file("extdata/hipc_2020-09-28_gene_expression_v31-recreated_template.RDS", package = "UpdateAnno", mustWork = TRUE)
+  file <- tempfile()
+  download.file("https://github.com/floratos-lab/hipc-dashboard-pipeline/raw/master/reformatted_data/gene_expression-recreated_template.RDS", file)
   ge <- readRDS(file)
-  ge <- ge[7:nrow(ge), 2:ncol(ge)]
+  ge0 <- ge0[7:nrow(ge0), 2:ncol(ge0)]
   keepCols <- c(
     "target_pathogen",
     "response_component_original",
@@ -124,12 +126,15 @@ process_gene_signatures <- function() {
   })
 
   # Pull Pubmed article title using ID
+  system.time({
   base <- "https://pubmed.ncbi.nlm.nih.gov/"
-  ge$pubmed_titles <- sapply(ge$publication_reference, function(id) {
-    url <- paste0(base, id, "/")
-    page <- xml2::read_html(url)
-    nodes <- rvest::html_nodes(page, css = ".heading-title")
-    title <- stringr::str_trim(rvest::html_text(nodes[[1]]))
+  ge$pubmed_titles2 <- sapply(ge$publication_reference, function(id) {
+    rentrez::entrez_summary("pubmed", id)$title
+  })
+  })
+  system.time({
+    pop_summ <- rentrez::entrez_post(db="pubmed", id=ge$publication_reference)
+    gt <- rentrez::extract_from_esummary(pop_summ, "title")
   })
 
   ge$timepoint_concat <- paste(ge$updated_timepoint, ge$updated_timepoint_units, sep = "-")
