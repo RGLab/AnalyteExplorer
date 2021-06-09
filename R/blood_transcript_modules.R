@@ -3,32 +3,33 @@
 # responses derived from a systems biology study of five human vaccines.
 # Nat Immunol. 2014;15(2):195-204. doi:10.1038/ni.2789
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3946932/bin/NIHMS540680-supplement-26.zip
-process_blood_transcript_modules <- function() {
+process_blood_transcription_modules <- function() {
   file <- system.file("extdata/btm_annotation_table.csv", package = "UpdateAnno", mustWork = TRUE)
-  dt <- data.table::fread(file)
+  metadata <- data.table::fread(file)
   btms <- UpdateAnno::emory_blood_transcript_modules
 
-  dt[, current_genes := sapply(`Composite name`, function(x) {
-    return(paste(btms[[x]], collapse = ", "))
+  metadata[, current_genes := sapply(ID, function(x) {
+    i <- grep(sprintf(" \\(%s\\)$", x), names(btms))[1]
+    paste(btms[[i]], collapse = ", ")
   })]
-  keepCols <- c(
+  columns_to_keep <- c(
+    "ID",
     "Composite name",
     "current_genes",
     "Top matched Gene Ontology terms (number of matched genes)",
     "Module size",
     "Module category"
   )
-  dt <- dt[, ..keepCols]
-  newNames <- c(
+  metadata <- metadata[, ..columns_to_keep]
+  new_names <- c(
+    "module_id",
     "module_name",
     "genes",
     "matched_gene_ontology_terms",
     "number_of_genes",
     "module_category"
   )
-  data.table::setnames(dt, colnames(dt), newNames)
+  data.table::setnames(metadata, colnames(metadata), new_names)
 
-  dt$id <- seq_len(nrow(dt))
-
-  dt
+  metadata
 }
