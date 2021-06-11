@@ -2,4 +2,6 @@
 
 export(check_data)
 export(process_data)
+export(process_gene_expression)
 export(update_table)
+importFrom(data.table,":=")
