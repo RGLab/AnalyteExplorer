@@ -1,9 +1,9 @@
 get_url_base <- function() {
-  get("labkey.url.base", envir = .GlobalEnv)
+  mget("labkey.url.base", envir = .GlobalEnv, ifnotfound = "https://www.immunespace.org")[[1]]
 }
 
 get_url_path <- function() {
-  get("labkey.url.path", envir = .GlobalEnv)
+  mget("labkey.url.path", envir = .GlobalEnv, ifnotfound = "/AnalyteExplorer/")[[1]]
 }
 
 log_message <- function(msg) {
@@ -40,3 +40,13 @@ fix_types <- function(types) {
     )
   }, USE.NAMES = FALSE)
 }
+
+save_debug <- function(object, name) {
+  debug_dir <- getOption("debug_dir")
+  if (!is.null(debug_dir)) {
+    file <- sprintf("%s/%s.rds", debug_dir, name)
+    log_message(sprintf("Saving to %s...", file))
+    saveRDS(object, file)
+  }
+}
+
