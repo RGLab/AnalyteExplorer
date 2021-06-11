@@ -22,8 +22,8 @@ process_blood_transcription_modules <- function() {
   )
   metadata <- metadata[, ..columns_to_keep]
   new_names <- c(
-    "module_id",
-    "module_name",
+    "id",
+    "name",
     "genes",
     "matched_gene_ontology_terms",
     "number_of_genes",

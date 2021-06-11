@@ -5,19 +5,21 @@
 process_gene_signatures <- function() {
   gene_signatures <- fetch_gene_signatures()
 
+  gene_signatures[, id := row_key]
+
   gene_signatures[, disease_studied := sapply(target_pathogen, update_target_pathogen)]
 
-  gene_signatures[, updated_symbols := sapply(response_component_original, update_gene_symbols)]
-  gene_signatures <- gene_signatures[!is.na(updated_symbols), ]
+  gene_signatures[, genes := sapply(response_component_original, update_gene_symbols)]
+  gene_signatures <- gene_signatures[!is.na(genes), ]
 
   gene_signatures[, timepoint := mapply(update_timepoint, time_point, time_point_units)]
   gene_signatures[, timepoint_units := sapply(time_point_units, update_timepoint_units)]
   gene_signatures[, timepoint_with_units := paste(timepoint, timepoint_units, sep = "-")]
 
   columns_to_keep <- c(
-    "row_key",
+    "id",
+    "genes",
     "disease_studied",
-    "updated_symbols",
     "response_behavior",
     "timepoint_with_units",
     "publication_reference",
@@ -37,8 +39,8 @@ fetch_gene_signatures <- function() {
   gene_signatures <- gene_signatures[7:nrow(gene_signatures), 2:ncol(gene_signatures)]
   columns_to_keep <- c(
     "row_key",
-    "target_pathogen",
     "response_component_original",
+    "target_pathogen",
     "response_behavior",
     "time_point",
     "time_point_units",
