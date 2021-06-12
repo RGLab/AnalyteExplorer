@@ -153,11 +153,11 @@ summarize_expression_data <- function(eset, by) {
 
   if (by == "blood transcription module") {
     blood_transcription_modules <- process_blood_transcription_modules()
-    gene_sets <- blood_transcription_modules$symbols
-    names(gene_sets) <- blood_transcription_modules$module_id
+    gene_sets <- blood_transcription_modules$genes
+    names(gene_sets) <- blood_transcription_modules$id
   } else if (by == "gene signature") {
     gene_signatures <- process_gene_signatures()
-    gene_sets <- gene_signatures$symbols
+    gene_sets <- gene_signatures$genes
     names(gene_sets) <- gene_signatures$id
   } else {
     gene_sets <- NULL
@@ -167,14 +167,14 @@ summarize_expression_data <- function(eset, by) {
     em <- Biobase::exprs(eset)
 
     # summarize by gene set as average of genes included in gene sets
-    em_list <- lapply(gene_sets, function(gene_set) {
-      log_message(gene_set)
-
+    em_list <- lapply(names(gene_sets), function(id) {
+      gene_set <- gene_sets[id]
       select_rows <- which(rownames(em) %in% gene_set)
       em_subset <- em[select_rows, ]
       if (!is.null(dim(em_subset))) {
         colMeans(em_subset, na.rm = TRUE)
       } else {
+        log_message(sprintf("No genes selected for %s", id))
         em_subset
       }
     })
