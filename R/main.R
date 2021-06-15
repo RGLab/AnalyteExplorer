@@ -1,15 +1,14 @@
 #' Process data
 #'
 #' @param data_name a character. data name to process: blood_transcript_modules,
-#' gene_expression, gene_signatures
+#' gene_signatures, or gene_expression
 #'
-#' @return A data.frame.
-#' @export
-#'
+#' @return A data.table.
 #' @examples
 #' \dontrun{
 #' data <- process_data("gene_expression")
 #' }
+#' @export
 process_data <- function(data_name) {
   log_message(sprintf("Processing '%s'...", data_name))
   switch(
@@ -25,28 +24,29 @@ process_data <- function(data_name) {
 #' Check data
 #'
 #' @param data_name a character. data name to process: blood_transcript_modules,
-#' gene_expression, gene_signatures
-#' @param data a data.frame.
+#' gene_signatures, or gene_expression
+#' @param data a data.table.
 #'
 #' @return A logical.
-#' @export
-#'
 #' @examples
 #' \dontrun{
-#' check_data("gene_expression", data)
+#' check_table("blood_transcription_modules", data)
+#' check_table("gene_signatures", data)
+#' check_table("gene_expression", data)
 #' }
-check_data <- function(data_name, data) {
+#' @export
+check_table <- function(data_name, data) {
   log_message("Checking data...")
 
   assertthat::assert_that(nrow(data) > 0)
   assertthat::assert_that(ncol(data) > 0)
 
   # check for NULLs
-  # is_null <- sapply(data, function(x) any(is.na(x) | x == ""))
-  # if (any(is_null)) {
-  #   columns <- paste0(names(is_null)[is_null], collapse = "', '")
-  #   stop(sprintf("'%s' columns have null or empty values!", columns))
-  # }
+  is_na <- sapply(data, function(x) any(is.na(x)))
+  if (any(is_na)) {
+    columns <- paste0(names(is_na)[is_na], collapse = "', '")
+    stop(sprintf("'%s' columns have null or empty values!", columns))
+  }
 
   # check for valid column names
   colnames_data <- sort(colnames(data))
@@ -84,15 +84,14 @@ check_data <- function(data_name, data) {
 #'
 #' @param data_name a character. data name to process: blood_transcript_modules,
 #' gene_expression, gene_signatures
-#' @param data a data.frame.
+#' @param data a data.table.
 #'
 #' @return A list.
-#' @export
-#'
 #' @examples
 #' \dontrun{
 #' res <- update_table("gene_expression", data)
 #' }
+#' @export
 update_table <- function(data_name, data) {
   schema_name <- "analyte_explorer"
 

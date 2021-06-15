@@ -45,7 +45,7 @@ save_debug <- function(object, name) {
   debug_dir <- getOption("debug_dir")
   if (!is.null(debug_dir)) {
     file <- sprintf("%s/%s.rds", debug_dir, name)
-    log_message(sprintf("Saving to %s...", file))
+    log_message(sprintf("Saving to %s", file))
     saveRDS(object, file)
   }
 }
