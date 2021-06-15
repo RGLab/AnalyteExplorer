@@ -10,7 +10,7 @@ update_table(data_name, data)
 \item{data_name}{a character. data name to process: blood_transcript_modules,
 gene_expression, gene_signatures}
 
-\item{data}{a data.frame.}
+\item{data}{a data.table.}
 }
 \value{
 A list.

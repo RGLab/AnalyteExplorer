@@ -8,10 +8,10 @@ process_data(data_name)
 }
 \arguments{
 \item{data_name}{a character. data name to process: blood_transcript_modules,
-gene_expression, gene_signatures}
+gene_signatures, or gene_expression}
 }
 \value{
-A data.frame.
+A data.table.
 }
 \description{
 Process data
