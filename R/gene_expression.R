@@ -1,7 +1,13 @@
 #' Process gene expression data summarized by gene, blood transcription module,
 #' and gene signature.
 #'
-#' @return
+#' @return data.table
+#' @examples
+#' \dontrun{
+#' ge <- process_gene_expression()
+#' check_table(ge)
+#' res <- update_table("gene_expression", ge)
+#' }
 #' @export
 process_gene_expression <- function() {
   log_message("Processing gene expression summary data...")
@@ -22,7 +28,7 @@ process_gene_expression <- function() {
   res <- rbind(summary_by_gene, summary_by_btm, summary_by_gs)
   res[is.infinite(mean_fold_change), mean_fold_change := NA]
   res$id <- seq_len(nrow(res))
-  save_debug(res, "gene_expression")
+  save_debug(res, "5_gene_expression")
 
   res
 }
@@ -77,7 +83,7 @@ fetch_expression_sets <- function(study_accessions) {
     con <- ImmuneSpaceR::CreateConnection(study_accession)
     con$getGEMatrix(con$cache$GE_matrices$name)
   }, mc.cores = parallel::detectCores())
-  save_debug(esets, "expressions_sets")
+  save_debug(esets, "1_expressions_sets")
 
   esets
 }
@@ -86,7 +92,7 @@ combine_expression_sets <- function(esets) {
   log_message("Combining expression sets...")
 
   eset <- ImmuneSpaceR:::.combineEMs(esets)
-  save_debug(eset, "expression_set")
+  save_debug(eset, "2a_expression_set")
 
   eset
 }
@@ -110,7 +116,7 @@ clean_expression_set <- function(eset) {
   biosamples_to_remove <- unlist(unname(biosamples_to_remove))
   eset <- eset[, !eset$biosample_accession %in% biosamples_to_remove]
 
-  save_debug(eset, "expression_set_cleaned")
+  save_debug(eset, "2b_expression_set_cleaned")
 
   eset
 }
@@ -143,7 +149,7 @@ add_metadata <- function(eset) {
     stop("Ensure ordering and matching of biosample IDs")
   }
 
-  save_debug(eset, "expression_set_with_metadata")
+  save_debug(eset, "2c_expression_set_with_metadata")
 
   eset
 }
@@ -169,6 +175,7 @@ summarize_expression_data <- function(eset, by) {
     # summarize by gene set as average of genes included in gene sets
     em_list <- lapply(names(gene_sets), function(id) {
       gene_set <- gene_sets[id]
+      gene_set <- strsplit(gene_set, split = ", ")[[1]]
       select_rows <- which(rownames(em) %in% gene_set)
       em_subset <- em[select_rows, ]
       if (!is.null(dim(em_subset))) {
@@ -188,7 +195,7 @@ summarize_expression_data <- function(eset, by) {
     )
   }
 
-  save_debug(eset, sprintf("expression_set_by_%s", by))
+  save_debug(eset, sprintf("3_expression_set_by_%s", by))
 
   create_summary_data(eset, by)
 }
@@ -350,8 +357,8 @@ create_summary_data <- function(eset, analyte_type) {
 
         fold_change <- em_post - em_base
 
-        mean_fold_change <- rowMeans(fold_change)
-        sd_fold_change <- apply(fold_change, 1, stats::sd)
+        mean_fold_change <- rowMeans(fold_change, na.rm = TRUE)
+        sd_fold_change <- apply(fold_change, 1, function(x) stats::sd(x, na.rm = TRUE))
         analyte_id <- rownames(fold_change)
       }
 
@@ -373,7 +380,7 @@ create_summary_data <- function(eset, analyte_type) {
   })
 
   summarized <- data.table::rbindlist(res)
-  save_debug(summarized, sprintf("summarized_by_%s", analyte_type))
+  save_debug(summarized, sprintf("4_summarized_by_%s", analyte_type))
 
   summarized
 }

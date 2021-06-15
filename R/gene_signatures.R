@@ -1,7 +1,23 @@
-# Allow users to filter options based on disease_studied, timepoint,tissue_type, regulation_type
-# Then show a string with the full pathogen name and the publication title in the dropdown.
-# In info section of the app, show publication title and abstract as well as link to pubmed ID.
-# https://github.com/floratos-lab/hipc-dashboard-pipeline/tree/master/reformatted_data
+#' Create a metadata table for gene signatures
+#'
+#' Updates the gene symbols with Hugo, maps pathogen to the disease types
+#' studied, and standardizes timepoint unit to days in gene signatures table
+#' from HIPC Dashboard. This table is used to filter the gene signatures and
+#' display metadata about the selected gene signature (or gene) in the app.
+#'
+#' @references
+#' https://github.com/floratos-lab/hipc-dashboard-pipeline/tree/master/reformatted_data
+#'
+#' @return data.table
+#' @examples
+#' \dontrun{
+#' library(UpdateAnno)
+#' gs <- process_gene_signatures()
+#' check_table(gs)
+#' res <- update_table("gene_signatures", gs)
+#' }
+#' @import UpdateAnno
+#' @export
 process_gene_signatures <- function() {
   gene_signatures <- fetch_gene_signatures()
 
@@ -29,6 +45,9 @@ process_gene_signatures <- function() {
   )
   gene_signatures[, ..columns_to_keep]
 }
+
+
+# Helper Functions -------------------------------------------------------------
 
 # Read in the latest gene signatures from HIPC Dashboard
 fetch_gene_signatures <- function() {
@@ -108,10 +127,11 @@ update_gene_symbols <- function(x) {
   if (length(symbols) == 0) {
     return(NA)
   } else {
-    return(paste(symbols, collapse = ";"))
+    return(paste(symbols, collapse = ", "))
   }
 }
 
+# Standardize timepoints to days
 update_timepoint <- function(value, unit) {
   if (value %in% c("N/A", "")) {
     return(NA)
@@ -129,7 +149,7 @@ update_timepoint <- function(value, unit) {
   }
 }
 
-# Standardize timepoints to Days and Years
+# Standardize timepoint units to days
 update_timepoint_units <- function(unit) {
   if (grepl("day|hour", unit, ignore.case = TRUE)) {
     return("Days")
