@@ -66,8 +66,8 @@ fetch_metadata <- function() {
   metadata[, expression_matrix := gsub("\\.tsv", "", run_dataoutputs_name)]
 
   metadata <- metadata[, has_data := 0 %in% unique(biosample_study_time_collected) &
-                         length(unique(biosample_study_time_collected)) > 1,
-                       by = .(biosample_participantid)
+    length(unique(biosample_study_time_collected)) > 1,
+  by = .(biosample_participantid)
   ]
   metadata <- metadata[has_data == TRUE]
 
@@ -251,13 +251,13 @@ map_condition <- function(pd) {
         return("Influenza")
       }
     } else if (study %in% unmarked_studies$influenza |
-               grepl("influenza|H1N1", condition, ignore.case = TRUE)) {
+      grepl("influenza|H1N1", condition, ignore.case = TRUE)) {
       return("Influenza")
     } else if (study %in% unmarked_studies$hepatitis |
-               grepl("Hepatitis", condition, ignore.case = TRUE)) {
+      grepl("Hepatitis", condition, ignore.case = TRUE)) {
       return("Hepatitis")
     } else if (study %in% unmarked_studies$smallpox |
-               grepl("Smallpox|vaccinia", condition, ignore.case = TRUE)) {
+      grepl("Smallpox|vaccinia", condition, ignore.case = TRUE)) {
       return("Smallpox")
     } else if (study %in% unmarked_studies$ppp) {
       return("Palmoplantar_Pustulosis")
