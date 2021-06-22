@@ -108,7 +108,9 @@ clean_expression_set <- function(eset) {
   # If multiple baseline, select one
   baseline <- eset[, eset$study_time_collected <= 0]
   duplicates <- baseline$participant_id[duplicated(baseline$participant_id)]
+  log_message(sprintf("Removing %s duplicates...", length(duplicates)))
   biosamples_to_remove <- sapply(duplicates, function(pid) {
+    log_message(pid)
     dup_entries <- baseline[, baseline$participant_id == pid]
     to_keep <- dup_entries$biosample_accession[dup_entries$study_time_collected == max(dup_entries$study_time_collected)][[1]]
     dup_entries$biosample_accession[dup_entries$biosample_accession != to_keep]
@@ -175,22 +177,29 @@ summarize_expression_data <- function(eset, by) {
     # summarize by gene set as average of genes included in gene sets
     em_list <- lapply(names(gene_sets), function(id) {
       gene_set <- gene_sets[id]
-      gene_set <- strsplit(gene_set, split = ", ")[[1]]
-      select_rows <- which(rownames(em) %in% gene_set)
-      em_subset <- em[select_rows, ]
-      if (!is.null(dim(em_subset))) {
-        colMeans(em_subset, na.rm = TRUE)
+      gene_set <- strsplit(gene_set, split = ", ")
+      # intersect
+      genes_in_em <- intersect(rownames(em) %in% gene_set)
+      n_genes_in_em <- length(genes_in_em)
+      n_gene_set <- length(gene_set)
+
+      if (n_genes_in_em > 0) {
+        if (n_genes_in_em != n_gene_set) {
+          log_message(id)
+          log_message(sprintf("%s/%s genes in matrix", n_genes_in_em, n_gene_set))
+        }
+        colMeans(em[genes_in_em, ], na.rm = TRUE)
       } else {
         log_message(sprintf("No genes selected for %s", id))
-        em_subset
+        NULL
       }
     })
 
-    em_by_gene_set <- data.frame(do.call(rbind, em_list), stringsAsFactors = FALSE)
-    rownames(em_by_gene_set) <- names(gene_sets)
+    em_by_gene_set <- do.call(rbind, em_list)
+    rownames(em_by_gene_set) <- names(gene_sets)[sapply(em_list, is.null)]
 
     eset <- Biobase::ExpressionSet(
-      assayData = as.matrix(em_by_gene_set),
+      assayData = em_by_gene_set,
       phenoData = Biobase::AnnotatedDataFrame(Biobase::pData(eset))
     )
   }
@@ -326,8 +335,9 @@ create_summary_data <- function(eset, analyte_type) {
         duplicates <- names(sample_count)[sample_count > 1]
 
         if (length(duplicates) > 0) {
-          log_message("Removing duplicates...")
+          log_message(sprintf("Removing %s duplicates...", length(duplicates)))
           biosample_to_remove <- sapply(duplicates, function(pid) {
+            log_message(pid)
             dup_entries <- eset_post[, eset_post$participant_id == pid]
             max_day <- max(dup_entries$study_time_collected)
             to_keep <- dup_entries$biosample_accession[dup_entries$study_time_collected == max_day][[1]]
