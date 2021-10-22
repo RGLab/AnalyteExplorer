@@ -6,8 +6,8 @@ get_url_path <- function() {
   mget("labkey.url.path", envir = .GlobalEnv, ifnotfound = "/AnalyteExplorer/")[[1]]
 }
 
-log_message <- function(msg) {
-  message(sprintf("[%s] %s", Sys.time(), msg))
+msg <- function(txt) {
+  message(sprintf("[%s] %s", Sys.time(), txt))
 }
 
 labkey.importData <- function(baseUrl, folderPath, schemaName, queryName, toImport) {
@@ -15,7 +15,7 @@ labkey.importData <- function(baseUrl, folderPath, schemaName, queryName, toImpo
   data.table::fwrite(toImport, temp_file)
 
   url <- paste(baseUrl, "query", folderPath, "import.api", sep = "")
-  config <- Rlabkey:::labkey.getRequestOptions(method = "POST")
+  config <- Rlabkey::labkey.getRequestOptions(method = "POST")
   body <- list(
     schemaName = schemaName,
     queryName = queryName,
@@ -45,8 +45,17 @@ save_debug <- function(object, name) {
   debug_dir <- getOption("debug_dir")
   if (!is.null(debug_dir)) {
     file <- sprintf("%s/%s.rds", debug_dir, name)
-    log_message(sprintf("Saving to %s", file))
+    msg(sprintf("Saving to %s", file))
     saveRDS(object, file)
   }
 }
 
+add_attributes <- function(data, data_name) {
+  class(data) <- c("AnalyteExplorer", class(data))
+  attr(data, "type") <- data_name
+  attr(data, "version") <- paste0("v", utils::packageVersion("AnalyteExplorer"))
+  hash <- utils::packageDescription("AnalyteExplorer")[["GithubSHA1"]]
+  attr(data, "hash") <- ifelse(is.null(hash), "", hash)
+
+  data
+}

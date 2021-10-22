@@ -1,6 +1,6 @@
 Package: AnalyteExplorer
 Title: Analyte Explorer
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: c(person("Evan", "Henrich", role = "aut"),
              person("Ju Yeong", "Kim", role = "aut"),
              person("ImmuneSpace Package Maintainer",
@@ -15,15 +15,15 @@ RoxygenNote: 7.1.1
 biocViews: Preprocessing
 Imports:
     stats,
+    utils,
+    methods,
     Rlabkey,
     ImmuneSpaceR,
     Biobase,
     data.table,
     UpdateAnno,
     assertthat,
-    httr,
-    rvest,
-    stringr,
-    xml2
+    httr
 Remotes:
+    RGLab/ImmuneSpaceR,
     RGLab/UpdateAnno

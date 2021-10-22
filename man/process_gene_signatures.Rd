@@ -18,9 +18,9 @@ display metadata about the selected gene signature (or gene) in the app.
 \examples{
 \dontrun{
 library(UpdateAnno)
-gs <- process_gene_signatures()
-check_table(gs)
-res <- update_table("gene_signatures", gs)
+gene_signatures <- process_data("gene_signatures")
+validate(gene_signatures)
+res <- update_table(gene_signatures)
 }
 }
 \references{

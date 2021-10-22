@@ -2,6 +2,7 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/RGLab/AnalyteExplorer/workflows/R-CMD-check/badge.svg)](https://github.com/RGLab/AnalyteExplorer/actions)
+[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/rglab/analyteexplorer.svg)](https://hub.docker.com/r/rglab/analyteexplorer)
 <!-- badges: end -->
 
 The goal of AnalyteExplorer is to pre-process data for the `AnalyteExplorer` module in [ImmuneSpace](https://www.immunespace.org/).
@@ -24,13 +25,25 @@ options(debug_dir = tempdir())
 labkey.url.base <- "https://www.immunespace.org"
 labkey.url.path <- "/AnalyteExplorer"
 
-btm <- process_blood_transcription_modules()
-check_table(btm)
-res <- update_table("blood_transcript_modules", btm)
+genes <- process_data("genes")
+validate(genes)
+res <- update_table(genes)
 
-ge <- process_gene_expression()
-check_table(ge)
-res <- update_table("gene_expression", ge)
+cohorts <- process_data("cohorts")
+validate(cohorts)
+res <- update_table(cohorts)
+
+btm <- process_data("blood_transcription_modules")
+validate(btm)
+res <- update_table(btm)
+
+signatures <- process_data("gene_signatures")
+validata(signautres)
+res <- update_table(signatures)
+
+summaries <- process_data("gene_expression_summaries")
+validate(summaries)
+res <- update_table(summaries)
 ```
 
 ## Data Processing
@@ -49,7 +62,7 @@ res <- update_table("gene_expression", ge)
 |M2.0 |extracellular matrix (I) (M2.0)                |CD1D, HLA-DMA, HLA-DMB, HLA-DPA1, HLA-DPB1, HLA-DQA2, METTL7A, WDFY4                                                                                                                                                                                                                                                       |protein binding (27), extracellular region (26), extracellular matrix (21)                       |              30|location           |
 
 
-### `process_gene_expression()`
+### `process_gene_expression_summaries()`
 
 - This function creates a gene expression table by cohort, timepoint, and analyte type (gene, blood transcript module, or gene signature).
 - Processing steps:
@@ -70,3 +83,4 @@ res <- update_table("gene_expression", ge)
 |healthy aldults |Whole blood |SDY1529         |Yellow_Fever |         3|M1.0       |blood transcription module |       -0.0181510|      0.1051648| 3894316|
 |healthy aldults |Whole blood |SDY1529         |Yellow_Fever |         3|21357945_1_8  |gene signature |        0.7102219|      0.5402085| 4028003|
 |healthy aldults |Whole blood |SDY1529         |Yellow_Fever |         3|21357945_2_9  |gene signature |        0.1105955|      0.5026520| 4028004|
+

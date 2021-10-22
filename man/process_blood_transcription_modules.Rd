@@ -16,9 +16,9 @@ in the app app.
 }
 \examples{
 \dontrun{
-btm <- process_blood_transcription_modules()
-check_table(btm)
-res <- update_table("blood_transcript_modules", btm)
+btm <- process_data("blood_transcription_modules")
+validate(btm)
+res <- update_table(btm)
 }
 }
 \references{

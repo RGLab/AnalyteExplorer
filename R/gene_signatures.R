@@ -12,9 +12,9 @@
 #' @examples
 #' \dontrun{
 #' library(UpdateAnno)
-#' gs <- process_gene_signatures()
-#' check_table(gs)
-#' res <- update_table("gene_signatures", gs)
+#' gene_signatures <- process_data("gene_signatures")
+#' validate(gene_signatures)
+#' res <- update_table(gene_signatures)
 #' }
 #' @import UpdateAnno
 #' @export
@@ -38,12 +38,15 @@ process_gene_signatures <- function() {
     "disease_studied",
     "response_behavior",
     "timepoint_with_units",
-    "publication_reference",
-    "subgroup",
+    "publication_reference_id",
     "comparison",
     "cohort"
   )
-  gene_signatures[, ..columns_to_keep]
+  gene_signatures <- gene_signatures[, ..columns_to_keep]
+
+  gene_signatures <- add_attributes(gene_signatures, "gene_signatures")
+
+  gene_signatures
 }
 
 
@@ -52,7 +55,7 @@ process_gene_signatures <- function() {
 # Read in the latest gene signatures from HIPC Dashboard
 fetch_gene_signatures <- function() {
   file <- tempfile()
-  download.file("https://github.com/floratos-lab/hipc-dashboard-pipeline/raw/master/reformatted_data/gene_expression-recreated_template.RDS", file)
+  utils::download.file("https://github.com/floratos-lab/hipc-dashboard-pipeline/raw/master/reformatted_data/gene_expression-recreated_template.RDS", file)
   gene_signatures <- readRDS(file)
 
   gene_signatures <- gene_signatures[7:nrow(gene_signatures), 2:ncol(gene_signatures)]
@@ -63,8 +66,7 @@ fetch_gene_signatures <- function() {
     "response_behavior",
     "time_point",
     "time_point_units",
-    "publication_reference",
-    "subgroup",
+    "publication_reference_id",
     "comparison",
     "cohort"
   )

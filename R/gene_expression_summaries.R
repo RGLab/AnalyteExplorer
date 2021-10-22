@@ -4,13 +4,13 @@
 #' @return data.table
 #' @examples
 #' \dontrun{
-#' ge <- process_gene_expression()
-#' check_table(ge)
-#' res <- update_table("gene_expression", ge)
+#' summaries <- process_data("gene_expression_summaries")
+#' validate(summaries)
+#' res <- update_table(summaries)
 #' }
 #' @export
-process_gene_expression <- function() {
-  log_message("Processing gene expression summary data...")
+process_gene_expression_summaries <- function() {
+  msg("Processing gene expression summary data")
 
   metadata <- fetch_metadata()
   esets <- fetch_expression_sets(unique(metadata$study_accession))
@@ -18,7 +18,7 @@ process_gene_expression <- function() {
   eset <- combine_expression_sets(esets)
   eset <- eset[, eset$participant_id %in% unique(metadata$biosample_participantid)]
   eset <- clean_expression_set(eset)
-  eset <- add_metadata(eset)
+  eset <- add_metadata(eset, metadata)
 
   summary_by_gene <- summarize_expression_data(eset, "gene")
   summary_by_btm <- summarize_expression_data(eset, "blood transcription module")
@@ -28,7 +28,10 @@ process_gene_expression <- function() {
   res <- rbind(summary_by_gene, summary_by_btm, summary_by_gs)
   res[is.infinite(mean_fold_change), mean_fold_change := NA]
   res$id <- seq_len(nrow(res))
-  save_debug(res, "5_gene_expression")
+
+  res <- add_attributes(res, "gene_expression_summaries")
+
+  save_debug(res, "5_gene_expression_summaries")
 
   res
 }
@@ -39,7 +42,7 @@ process_gene_expression <- function() {
 # https://www.immunespace.org/query/Studies/executeQuery.view?schemaName=assay.ExpressionMatrix.matrix&query.queryName=InputSamples_computed
 #' @importFrom data.table :=
 fetch_metadata <- function() {
-  log_message("Fetching gene expression metadata...")
+  msg("Fetching gene expression metadata")
 
   metadata <- Rlabkey::labkey.selectRows(
     baseUrl = get_url_base(),
@@ -48,10 +51,13 @@ fetch_metadata <- function() {
     queryName = "inputSamples_computed",
     colNameOpt = "rname",
     colSelect = c(
+      "Biosample/biosample_accession",
       "Biosample/ParticipantId",
       "Biosample/study_time_collected",
       "Biosample/study_time_collected_unit",
-      "Run/DataOutputs/Name"
+      "Run/DataOutputs/Name",
+      "Biosample/arm_accession",
+      "Biosample/type"
     ),
     colFilter = Rlabkey::makeFilter(c("Biosample/study_time_collected", "GREATER_THAN_OR_EQUAL", "0"))
   )
@@ -75,21 +81,26 @@ fetch_metadata <- function() {
 }
 
 fetch_expression_sets <- function(study_accessions) {
-  log_message("Fetching and creating expression sets...")
+  msg("Fetching and creating expression sets")
 
-  esets <- parallel::mclapply(study_accessions, function(study_accession) {
-    log_message(study_accession)
+  esets <- lapply(study_accessions, function(study_accession) {
+    msg(study_accession)
 
     con <- ImmuneSpaceR::CreateConnection(study_accession)
     con$getGEMatrix(con$cache$GE_matrices$name)
-  }, mc.cores = parallel::detectCores())
+  })
+
+  # if (any(sapply(esets, function(x) is(x, "try-error")))) {
+  #   stop("Something went wrong!")
+  # }
+
   save_debug(esets, "1_expressions_sets")
 
   esets
 }
 
 combine_expression_sets <- function(esets) {
-  log_message("Combining expression sets...")
+  msg("Combining expression sets")
 
   eset <- ImmuneSpaceR:::.combineEMs(esets)
   save_debug(eset, "2a_expression_set")
@@ -98,7 +109,7 @@ combine_expression_sets <- function(esets) {
 }
 
 clean_expression_set <- function(eset) {
-  log_message("Cleaning combined expression set...")
+  msg("Cleaning combined expression set")
 
   # Handle baseline dupes
   # remove values before dneg7
@@ -108,9 +119,9 @@ clean_expression_set <- function(eset) {
   # If multiple baseline, select one
   baseline <- eset[, eset$study_time_collected <= 0]
   duplicates <- baseline$participant_id[duplicated(baseline$participant_id)]
-  log_message(sprintf("Removing %s duplicates...", length(duplicates)))
+  msg(sprintf("Removing %s duplicates", length(duplicates)))
   biosamples_to_remove <- sapply(duplicates, function(pid) {
-    log_message(pid)
+    msg(pid)
     dup_entries <- baseline[, baseline$participant_id == pid]
     to_keep <- dup_entries$biosample_accession[dup_entries$study_time_collected == max(dup_entries$study_time_collected)][[1]]
     dup_entries$biosample_accession[dup_entries$biosample_accession != to_keep]
@@ -124,32 +135,18 @@ clean_expression_set <- function(eset) {
 }
 
 # Add metadata fields for hover text
-add_metadata <- function(eset) {
-  log_message("Adding metadata to combined expression set...")
+add_metadata <- function(eset, metadata) {
+  msg("Adding metadata to combined expression set")
 
-  study_info <- Rlabkey::labkey.selectRows(
-    baseUrl = get_url_base(),
-    folderPath = "/Studies/",
-    schemaName = "immport",
-    queryName = "study",
-    colNameOpt = "rname"
-  )
-
-  eset$study_accession <- gsub("SUB\\d{6}\\.", "SDY", eset$participant_id)
-  split_cohort_type <- strsplit(eset$cohort_type, split = "_")
-  eset$sample_type <- sapply(split_cohort_type, function(x) x[length(x)])
-  eset$condition <- study_info$condition_studied[match(
-    eset$study_accession,
-    study_info$study_accession
-  )]
+  metadata <- unique(metadata[, .(biosample_biosample_accession, biosample_arm_accession, biosample_type, study_accession)])
+  data.table::setnames(metadata, c("biosample_accession", "arm_accession", "sample_type", "study_accession"))
 
   pd <- Biobase::pData(eset)
-  pd <- map_condition(pd)
-  if (all.equal(rownames(pd), colnames(Biobase::exprs(eset)))) {
-    Biobase::pData(eset) <- pd
-  } else {
-    stop("Ensure ordering and matching of biosample IDs")
-  }
+  data.table::setDT(pd)
+  pd <- merge(pd, metadata, by = "biosample_accession")
+  rownames(pd) <- pd$biosample_accession
+  Biobase::pData(eset) <- pd
+  Biobase::sampleNames(eset) <- eset$biosample_accession
 
   save_debug(eset, "2c_expression_set_with_metadata")
 
@@ -157,7 +154,7 @@ add_metadata <- function(eset) {
 }
 
 summarize_expression_data <- function(eset, by) {
-  log_message(sprintf("Creating gene expression summary data by %s...", by))
+  msg(sprintf("Creating gene expression summary data by %s", by))
 
   if (by == "blood transcription module") {
     blood_transcription_modules <- process_blood_transcription_modules()
@@ -177,29 +174,33 @@ summarize_expression_data <- function(eset, by) {
     # summarize by gene set as average of genes included in gene sets
     em_list <- lapply(names(gene_sets), function(id) {
       gene_set <- gene_sets[id]
-      gene_set <- strsplit(gene_set, split = ", ")
+      gene_set <- strsplit(gene_set, split = ", ")[[1]]
       # intersect
-      genes_in_em <- intersect(rownames(em) %in% gene_set)
+      genes_in_em <- intersect(rownames(em), gene_set)
       n_genes_in_em <- length(genes_in_em)
       n_gene_set <- length(gene_set)
 
+      msg(id)
       if (n_genes_in_em > 0) {
         if (n_genes_in_em != n_gene_set) {
-          log_message(id)
-          log_message(sprintf("%s/%s genes in matrix", n_genes_in_em, n_gene_set))
+          msg(sprintf("%s/%s genes in matrix", n_genes_in_em, n_gene_set))
         }
-        colMeans(em[genes_in_em, ], na.rm = TRUE)
+        if (n_genes_in_em == 1) {
+          em[genes_in_em, ]
+        } else {
+          colMeans(em[genes_in_em, ], na.rm = TRUE)
+        }
       } else {
-        log_message(sprintf("No genes selected for %s", id))
+        msg("No genes selected")
         NULL
       }
     })
 
     em_by_gene_set <- do.call(rbind, em_list)
-    rownames(em_by_gene_set) <- names(gene_sets)[sapply(em_list, is.null)]
+    rownames(em_by_gene_set) <- names(gene_sets)[!sapply(em_list, is.null)]
 
     eset <- Biobase::ExpressionSet(
-      assayData = em_by_gene_set,
+      assayData = em_by_gene_set[, eset$biosample_accession],
       phenoData = Biobase::AnnotatedDataFrame(Biobase::pData(eset))
     )
   }
@@ -209,112 +210,21 @@ summarize_expression_data <- function(eset, by) {
   create_summary_data(eset, by)
 }
 
-#' Convert ImmuneSpace condition-studied to a curated version
-#'
-#' @param pd phenotypic meta-data data.table with condition from ImmuneSpace
-map_condition <- function(pd) {
-  unmarked_studies <- list(
-    influenza = c(
-      "SDY80",
-      "SDY144",
-      "SDY224",
-      "SDY296",
-      "SDY301",
-      "SDY364",
-      "SDY368",
-      "SDY387"
-    ),
-    hepatitis = c(
-      "SDY89",
-      "SDY299",
-      "SDY690"
-    ),
-    smallpox = c(
-      "SDY1370"
-    ),
-    herpes_zoster = c(
-      "SDY984"
-    )
-  )
-
-  pd$mapped_condition <- apply(pd, 1, function(x) {
-    study <- x[["study_accession"]]
-    condition <- x[["condition"]]
-    cohort <- x[["cohort"]]
-
-    if (study == "SDY180") {
-      if (grepl("Saline", cohort)) {
-        return("Healthy")
-      } else if (grepl("Pneunomax23", cohort)) {
-        return("Pneumonia")
-      } else {
-        return("Influenza")
-      }
-    } else if (study %in% unmarked_studies$influenza |
-      grepl("influenza|H1N1", condition, ignore.case = TRUE)) {
-      return("Influenza")
-    } else if (study %in% unmarked_studies$hepatitis |
-      grepl("Hepatitis", condition, ignore.case = TRUE)) {
-      return("Hepatitis")
-    } else if (study %in% unmarked_studies$smallpox |
-      grepl("Smallpox|vaccinia", condition, ignore.case = TRUE)) {
-      return("Smallpox")
-    } else if (study %in% unmarked_studies$ppp) {
-      return("Palmoplantar_Pustulosis")
-    } else if (study %in% unmarked_studies$herpes_zoster) {
-      return("Herpes_Zoster")
-    } else if (grepl("healthy|normal|naive", condition, ignore.case = TRUE)) {
-      return("Healthy")
-    } else if (grepl("CMV", condition, ignore.case = TRUE)) {
-      return("CMV")
-    } else if (grepl("TB|tuberculosis", condition, ignore.case = TRUE)) {
-      return("Tuberculosis")
-    } else if (grepl("Yellow Fever", condition, ignore.case = TRUE)) {
-      return("Yellow_Fever")
-    } else if (grepl("Mening", condition, ignore.case = TRUE)) {
-      return("Meningitis")
-    } else if (grepl("Malaria", condition, ignore.case = TRUE)) {
-      return("Malaria")
-    } else if (grepl("HIV", condition, ignore.case = TRUE)) {
-      return("HIV")
-    } else if (grepl("Dengue", condition, ignore.case = TRUE)) {
-      return("Dengue")
-    } else if (grepl("ZEBOV", condition, ignore.case = TRUE)) {
-      return("Ebola")
-    } else if (grepl("JDM|Dermatomyositis", condition, ignore.case = TRUE)) {
-      return("Dermatomyositis")
-    } else if (grepl("West Nile", condition, ignore.case = TRUE)) {
-      return("West_Nile")
-    } else if (grepl("Zika", condition, ignore.case = TRUE)) {
-      return("Zika")
-    } else if (grepl("Varicella", condition, ignore.case = TRUE)) {
-      return("Varicella_Zoster")
-    } else {
-      return("Unknown")
-    }
-  })
-
-  pd
-}
-
-#' Create a summary data object for easy use with app
-#'
-#' @param eset eset object with cohort column and gene or btm expression
+# Create a summary data object for easy use with app
 create_summary_data <- function(eset, analyte_type) {
-  log_message("Creating summary data...")
+  msg("Creating summary data")
 
-  eset$study_cohort <- paste(eset$study_accession, eset$cohort, sep = "_")
+  eset$study_cohort_type <- paste(eset$study_accession, eset$arm_accession, eset$sample_type, sep = "_")
 
   # Create data frame with summary statistics for each cohort*timepoint
-  res <- lapply(unique(eset$study_cohort), function(study_cohort) {
-    log_message(study_cohort)
+  res <- lapply(unique(eset$study_cohort_type), function(study_cohort_type) {
+    msg(study_cohort_type)
 
-    eset_subset <- eset[, eset$study_cohort == study_cohort]
+    eset_subset <- eset[, eset$study_cohort_type == study_cohort_type]
 
     sample_type <- unique(eset_subset$sample_type)
-    condition <- unique(eset_subset$mapped_condition)
     study_accession <- unique(eset_subset$study_accession)
-    cohort <- unique(eset_subset$cohort)
+    arm_accession <- unique(eset_subset$arm_accession)
 
     timepoints_table <- table(eset_subset$study_time_collected)
     timepoints <- as.numeric(names(timepoints_table)[timepoints_table > 2])
@@ -322,7 +232,7 @@ create_summary_data <- function(eset, analyte_type) {
     baseline <- eset_subset[, eset_subset$study_time_collected == 0]
 
     subres <- lapply(timepoints, function(timepoint) {
-      log_message(timepoint)
+      msg(sprintf("Day %s", timepoint))
 
       if (timepoint == 0) {
         mean_fold_change <- 0
@@ -335,9 +245,9 @@ create_summary_data <- function(eset, analyte_type) {
         duplicates <- names(sample_count)[sample_count > 1]
 
         if (length(duplicates) > 0) {
-          log_message(sprintf("Removing %s duplicates...", length(duplicates)))
+          msg(sprintf("Removing %s duplicates", length(duplicates)))
           biosample_to_remove <- sapply(duplicates, function(pid) {
-            log_message(pid)
+            msg(pid)
             dup_entries <- eset_post[, eset_post$participant_id == pid]
             max_day <- max(dup_entries$study_time_collected)
             to_keep <- dup_entries$biosample_accession[dup_entries$study_time_collected == max_day][[1]]
@@ -349,7 +259,7 @@ create_summary_data <- function(eset, analyte_type) {
 
         shared <- intersect(baseline$participant_id, eset_post$participant_id)
         if (length(shared) < 3) {
-          log_message("There are less than three shared participants between baseline and post...")
+          msg("There are less than three shared participants between baseline and post")
           return()
         }
 
@@ -362,7 +272,7 @@ create_summary_data <- function(eset, analyte_type) {
         em_post <- em_post[order(match(rownames(em_post), rownames(em_base))), ]
 
         if (!all.equal(dim(em_base), dim(em_base))) {
-          stop("Dimensions do not match...")
+          stop("Dimensions do not match")
         }
 
         fold_change <- em_post - em_base
@@ -373,10 +283,9 @@ create_summary_data <- function(eset, analyte_type) {
       }
 
       data.frame(
-        cohort = cohort,
+        arm_accession = arm_accession,
         sample_type = sample_type,
         study_accession = study_accession,
-        condition = condition,
         timepoint = timepoint,
         analyte_id = analyte_id,
         analyte_type = analyte_type,
@@ -408,7 +317,7 @@ convert_unit_to_day <- function(value, unit) {
   } else if (unit %in% c("year", "years")) {
     return(value * 365)
   } else {
-    log_message("")
+    msg("")
     return(NA)
   }
 }

@@ -8,7 +8,7 @@ process_data(data_name)
 }
 \arguments{
 \item{data_name}{a character. data name to process: blood_transcript_modules,
-gene_signatures, or gene_expression}
+gene_signatures, or gene_expression_summaries}
 }
 \value{
 A data.table.
@@ -18,6 +18,6 @@ Process data
 }
 \examples{
 \dontrun{
-data <- process_data("gene_expression")
+data <- process_data("gene_expression_summaries")
 }
 }

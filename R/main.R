@@ -1,42 +1,44 @@
 #' Process data
 #'
 #' @param data_name a character. data name to process: blood_transcript_modules,
-#' gene_signatures, or gene_expression
+#' gene_signatures, or gene_expression_summaries
 #'
 #' @return A data.table.
 #' @examples
 #' \dontrun{
-#' data <- process_data("gene_expression")
+#' data <- process_data("gene_expression_summaries")
 #' }
 #' @export
 process_data <- function(data_name) {
-  log_message(sprintf("Processing '%s'...", data_name))
+  msg(sprintf("Processing '%s'", data_name))
   switch(
     data_name,
+    "genes" = process_genes(),
     "blood_transcript_modules" = process_blood_transcript_modules(),
     "gene_signatures" = process_gene_signatures(),
-    "gene_expression" = process_gene_expression(),
-    stop(data_name, " is not a valid data name...")
+    "gene_expression_summaries" = process_gene_expression_summaries(),
+    "cohorts" = process_cohorts(),
+    stop(data_name, " is not a valid data name")
   )
 }
 
 
-#' Check data
+#' Validate data
 #'
-#' @param data_name a character. data name to process: blood_transcript_modules,
-#' gene_signatures, or gene_expression
 #' @param data a data.table.
+#' @param schema_name a character.
 #'
 #' @return A logical.
 #' @examples
 #' \dontrun{
-#' check_table("blood_transcription_modules", data)
-#' check_table("gene_signatures", data)
-#' check_table("gene_expression", data)
+#' validate(data)
 #' }
 #' @export
-check_table <- function(data_name, data) {
-  log_message("Checking data...")
+validate <- function(data, schema_name = "analyte_explorer") {
+  assertthat::assert_that(methods::is(data, "AnalyteExplorer"))
+  data_name <- attr(data, "type")
+
+  msg("Validating data")
 
   assertthat::assert_that(nrow(data) > 0)
   assertthat::assert_that(ncol(data) > 0)
@@ -82,9 +84,8 @@ check_table <- function(data_name, data) {
 
 #' Update table
 #'
-#' @param data_name a character. data name to process: blood_transcript_modules,
-#' gene_expression, gene_signatures
 #' @param data a data.table.
+#' @param schema_name a character.
 #'
 #' @return A list.
 #' @examples
@@ -92,10 +93,11 @@ check_table <- function(data_name, data) {
 #' res <- update_table("gene_expression", data)
 #' }
 #' @export
-update_table <- function(data_name, data) {
-  schema_name <- "analyte_explorer"
+update_table <- function(data, schema_name = "analyte_explorer") {
+  assertthat::assert_that(methods::is(data, "AnalyteExplorer"))
+  data_name <- attr(data, "type")
 
-  log_message("Backing up...")
+  msg("Backing up")
   backup <- suppressWarnings(Rlabkey::labkey.selectRows(
     baseUrl = get_url_base(),
     folderPath = get_url_path(),
@@ -105,7 +107,7 @@ update_table <- function(data_name, data) {
   ))
 
   if (nrow(backup) > 0) {
-    log_message("Truncating table...")
+    msg("Truncating table")
     Rlabkey::labkey.truncateTable(
       baseUrl = get_url_base(),
       folderPath = get_url_path(),
@@ -116,7 +118,7 @@ update_table <- function(data_name, data) {
 
   res <- tryCatch(
     {
-      log_message(sprintf("Importing %s rows of data...", nrow(data)))
+      msg(sprintf("Importing %s rows of data", nrow(data)))
       labkey.importData(
         baseUrl = get_url_base(),
         folderPath = get_url_path(),
@@ -126,9 +128,9 @@ update_table <- function(data_name, data) {
       )
     },
     error = function(e) {
-      log_message("Failed to import data!")
+      msg("Failed to import data!")
       if (nrow(backup) > 0) {
-        log_message("Restoring table...")
+        msg("Restoring table")
         labkey.importData(
           baseUrl = get_url_base(),
           folderPath = get_url_path(),
@@ -140,7 +142,7 @@ update_table <- function(data_name, data) {
       stop(e)
     },
     finally = {
-      log_message("Import completed...")
+      msg("Import completed")
     }
   )
 
