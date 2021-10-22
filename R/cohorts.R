@@ -38,7 +38,7 @@ process_cohorts <- function() {
   )
   data.table::setDT(study_info)
 
-  research_focus <- labkey.selectRows(
+  research_focus <- Rlabkey::labkey.selectRows(
     baseUrl = get_url_base(),
     folderPath = "/Studies",
     schemaName = "immport",

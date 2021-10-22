@@ -14,7 +14,7 @@ process_data <- function(data_name) {
   switch(
     data_name,
     "genes" = process_genes(),
-    "blood_transcript_modules" = process_blood_transcript_modules(),
+    "blood_transcription_modules" = process_blood_transcription_modules(),
     "gene_signatures" = process_gene_signatures(),
     "gene_expression_summaries" = process_gene_expression_summaries(),
     "cohorts" = process_cohorts(),
