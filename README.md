@@ -2,7 +2,7 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/RGLab/AnalyteExplorer/workflows/R-CMD-check/badge.svg)](https://github.com/RGLab/AnalyteExplorer/actions)
-[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/rglab/analyteexplorer.svg)](https://hub.docker.com/r/rglab/analyteexplorer)
+[![docker](https://github.com/RGLab/AnalyteExplorer/actions/workflows/docker-build.yaml/badge.svg)](https://hub.docker.com/r/rglab/analyteexplorer)
 <!-- badges: end -->
 
 The goal of AnalyteExplorer is to pre-process data for the `AnalyteExplorer` module in [ImmuneSpace](https://www.immunespace.org/).
