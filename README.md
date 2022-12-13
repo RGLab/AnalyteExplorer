@@ -5,7 +5,7 @@
 [![docker](https://github.com/RGLab/AnalyteExplorer/actions/workflows/docker-build.yaml/badge.svg)](https://hub.docker.com/r/rglab/analyteexplorer)
 <!-- badges: end -->
 
-The goal of AnalyteExplorer is to pre-process data for the `AnalyteExplorer` module in [ImmuneSpace](https://www.immunespace.org/).
+The goal of AnalyteExplorer is to pre-process data for the `AnalyteExplorer` module in [ImmuneSpace](https://datatools.immunespace.org/).
 
 ## Installation
 
@@ -22,7 +22,7 @@ remotes::install_github("RGLab/AnalyteExplorer")
 library(AnalyteExplorer)
 library(UpdateAnno)
 options(debug_dir = tempdir())
-labkey.url.base <- "https://www.immunespace.org"
+labkey.url.base <- "https://datatools.immunespace.org"
 labkey.url.path <- "/AnalyteExplorer"
 
 genes <- process_data("genes")

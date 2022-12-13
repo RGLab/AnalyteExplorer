@@ -1,6 +1,6 @@
 Package: AnalyteExplorer
 Title: Analyte Explorer
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(person("Evan", "Henrich", role = "aut"),
              person("Ju Yeong", "Kim", role = "aut"),
              person("ImmuneSpace Package Maintainer",

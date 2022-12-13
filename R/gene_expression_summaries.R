@@ -39,7 +39,7 @@ process_gene_expression_summaries <- function() {
 
 # HELPER FUNCTIONS -------------------------------------------------------------
 
-# https://www.immunespace.org/query/Studies/executeQuery.view?schemaName=assay.ExpressionMatrix.matrix&query.queryName=InputSamples_computed
+# https://datatools.immunespace.org/query/Studies/executeQuery.view?schemaName=assay.ExpressionMatrix.matrix&query.queryName=InputSamples_computed
 #' @importFrom data.table :=
 fetch_metadata <- function() {
   msg("Fetching gene expression metadata")

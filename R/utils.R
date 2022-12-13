@@ -1,5 +1,5 @@
 get_url_base <- function() {
-  mget("labkey.url.base", envir = .GlobalEnv, ifnotfound = "https://www.immunespace.org")[[1]]
+  mget("labkey.url.base", envir = .GlobalEnv, ifnotfound = "https://datatools.immunespace.org")[[1]]
 }
 
 get_url_path <- function() {
